@@ -1,0 +1,91 @@
+Henry Fang, Aasrija Puchakatla
+hef052, aap435
+
+CMPT 332
+
+A3Q2 Documentation
+
+Makefile:
+	To make test program: 
+		make
+	To make petgroomsynch.o (Also made when test program is made):
+		make petgroomsynch.o
+
+To run test file: ./test
+	
+
+Functions properly in terms of only having cats or only having dogs being groomed together.
+Pets of type "other" will be groomed as long as there is an empty station.
+
+
+In terms of Rule 3: Starvation prevention. My solution is that if we are currently grooming a type of pet, say dogs, and a cat arrives.
+The cat arrival will flip a boolean variable (continue_accept_current_pet) to false. When this is false any new arrivals after the cat will block until 
+the cat has been groomed.
+
+Example:
+
+Dog arrives -> sent for grooming
+Dog arrives -> sent for grooming
+Dog arrives -> sent for grooming
+Cat arrives -> We are grooming dogs, cannot groom cats right now. Flip continue_accept_current_pet to false. Block this thread until previous dogs are done grooming.
+               When this thread unblocks and the cat is groomed we can flip the variable back to true.
+Dog arrives -> Arrives before cat has been groomed and sees that dogs are being groomed. However, continue_accept_current_pet is false so we block until the cat thread has finished and flips the variable back to true.
+
+When a lot of pets arrive simultaneously there could potentially be situations where we alternate processing between a 
+cat and a dog repeatedly if the thread scheduler decides the thread order in an unlucky fashion.
+
+
+TEST PROGRAM
+
+My test program has a section that simply tests for return values and also a section that checks for grooming functionality.
+The part of the program that tests for functionality is a visual inspection with print statements.
+
+It will print messages of pets arriving at the facility, pets being sent to be groomed, and pets finishing grooming:
+	1. Pet of type: <type> has arrived for grooming. <What situation has it arrived into>. -> Thread has been sent, it may or may not get blocked.
+	2. Pet of type: <type> has been sent for grooming. <What situation has allowed it to continue>. -> Thread can continue, either was unblocked or was never blocked to begin with.
+	3. Pet of type: <type> has returned from grooming. -> Thread has finished.
+
+When pets are finished grooming (situation 3) we also print what type of pet that can currently be groomed (cat, dog or other):
+	<type>'s being groomed
+
+Whenever pets are sent for grooming (situation 2) we also print how the facility state has changed after it has been placed in:
+	Pet of type: <type> has been sent for grooming...
+
+	-------------
+	On Thread: <identifier>
+	Grooming Initialized
+	Currently grooming: <type>
+	
+	Station 1 occupied by <type>
+	Station 2 occupied by <type>
+	...
+	-------------
+
+One thing to note: THE POSITIONS OF PETS ARE NOT REMEMBERED. Once a pet is finished grooming: The earliest occurrence of that pet's type is removed.
+The pet may not be removed from the same station that it was sent into. What matters the the NUMBER of each pet type in the facility.
+This was just a design choice as the facility probably could've been represented as a number of queues rather than an array of stations.
+These prints should give a good idea of the order of execution of threads.
+
+
+ADDITIONAL FUNCTIONS
+
+void print_stations_state(char * thread);
+	Used in the test program to print the current state of the grooming facility. 
+	param thread: is a string identifier for the thread that calls this function
+
+int open_station()
+	A function that checks the grooming facility for one empty station. Returns 1 if there is one. Otherwise returns 0.
+
+int check_change_pet_type(pet_t pet)
+	The function checks to see if another pet of the same type as param pet still is being groomed.
+	If not we set the variable that remembers what pet type can be groomed to a neutral state (other) so that any new pet
+	arrivals, of either type, can now be processed. Returns 1 when this happens.
+	If there is another pet of the same type or if param pet is "other" we do nothing and return 0;
+
+void *pet_thread(void *arg)
+	The thread function in my test program.
+	Takes a struct of type myarg_t which contains the pet type being groomed, the amount of grooming time, and a string identifier for the thread.
+	Calls newpet() with given pet, sleeps for the given time, and calls petdone().
+	Return values don't mean anything.
+
+	
