@@ -1,2 +1,2 @@
-# CMPT 332
+# Multithreading concurrency program simulating pet grooming
 
